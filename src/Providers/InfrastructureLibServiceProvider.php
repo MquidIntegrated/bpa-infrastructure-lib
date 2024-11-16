@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use BPA\InfrastructureLib\Services\ErrorHandling\ErrorHandlingService;
 use Illuminate\Foundation\Application;
+use BPA\InfrastructureLib\Events\EventManager;
+use BPA\InfrastructureLib\Commands\ListenEventsCommand;
 
 class InfrastructureLibServiceProvider extends ServiceProvider
 {
@@ -24,13 +26,19 @@ class InfrastructureLibServiceProvider extends ServiceProvider
             return new MetricsService(config('core_dependencies.metrics', []));
         });
 
-        $this->app->singleton('broadcast.manager', function ($app) {
-            return new BroadcastManager($app);
+        $this->mergeConfigFrom(
+            __DIR__.'/../config/infrastructure.php', 'infrastructure'
+        );
+
+        // Register EventManager
+        $this->app->singleton(EventManager::class, function ($app) {
+            return new EventManager(config('infrastructure.events'));
         });
 
-        $this->app->singleton('broadcast.listener', function ($app) {
-            return new BroadcastListener($app['broadcast.manager']);
-        });
+        // Register commands
+        $this->commands([
+            ListenEventsCommand::class
+        ]);
 
         $this->setupMetricsCollectors();
 
@@ -56,8 +64,15 @@ class InfrastructureLibServiceProvider extends ServiceProvider
 
     public function boot()
     {
+        if ($this->app->runningInConsole()) {
+            $this->publishes([
+                __DIR__.'/../config/infrastructure.php' => config_path('infrastructure.php'),
+            ], 'infrastructure-config');
+        }
+
+
         $this->publishes([
-            __DIR__ . '/../../config/core_dependencies.php' => config_path('core_dependencies.php'),
+            __DIR__.'/../config/infrastructure.php' => config_path('infrastructure.php'),
         ], 'config');
 
         $this->bootEventListeners();
