@@ -5,6 +5,7 @@ namespace BPA\InfrastructureLib\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use BPA\InfrastructureLib\Services\Monitoring\MetricsService;
+use Illuminate\Support\Facades\Log;
 
 class MonitoringMiddleware
 {
@@ -25,13 +26,30 @@ class MonitoringMiddleware
     public function handle(Request $request, Closure $next)
     {
         $start = microtime(true);
+        
+        // Add debug logging
+        Log::info('MonitoringMiddleware: Starting request', [
+            'uri' => $request->getRequestUri(),
+            'method' => $request->method(),
+        ]);
+
         $response = $next($request);
         $duration = microtime(true) - $start;
 
         if ($request->route()) {
+            $routeName = $request->route()->getName() ?? $request->route()->uri();
+            
+            // Add debug logging
+            Log::info('MonitoringMiddleware: Recording metrics', [
+                'route' => $routeName,
+                'duration' => $duration,
+                'status' => $response->getStatusCode()
+            ]);
+
+            // Record both the counter and histogram metrics
             $this->metricsService->recordHttpRequest(
                 $request->method(),
-                $request->route()->getName() ?? 'unnamed',
+                $routeName,
                 $response->getStatusCode(),
                 $duration
             );

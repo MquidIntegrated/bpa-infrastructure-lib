@@ -123,11 +123,13 @@ class MetricsService
 
     public function setupHttpMetrics()
     {
-        app('router')->matched(function ($route, $request) {
+        app('router')->matched(function ($route) {
             $start = microtime(true);
-
-            app()->terminating(function () use ($start, $request, $route) {
+    
+            app()->terminating(function () use ($start, $route) {
+                $request = request(); // Get the request object
                 $duration = microtime(true) - $start;
+                
                 $this->recordHttpRequest(
                     $request->method(),
                     $route->uri(),
@@ -137,6 +139,7 @@ class MetricsService
             });
         });
     }
+    
 
     // Alternative approach using event subscription
     private function initializeCacheMetrics(string $namespace)
@@ -190,9 +193,27 @@ class MetricsService
 
     public function recordHttpRequest($method, $route, $status, $duration)
     {
-        $this->counters['http_requests_total']->inc(['method' => $method, 'route' => $route, 'status' => $status]);
-        $this->histograms['http_request_duration']->observe($duration, ['route' => $route]);
+        try {
+            // Record request count
+            if (isset($this->counters['http_requests_total'])) {
+                $this->counters['http_requests_total']->inc([
+                    'method' => $method,
+                    'route' => $route,
+                    'status' => (string) $status
+                ]);
+            }
+
+            // Record request duration
+            if (isset($this->histograms['http_request_duration'])) {
+                $this->histograms['http_request_duration']->observe(
+                    $duration,
+                    ['route' => $route]
+                );
+            }
+        } catch (\Exception $e) {
+        }
     }
+
 
     public function recordDbQuery($duration)
     {
