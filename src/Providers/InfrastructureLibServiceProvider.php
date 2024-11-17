@@ -120,11 +120,11 @@ class InfrastructureLibServiceProvider extends ServiceProvider
     private function integrateLogging()
     {
         // Extend Laravel's logging to include our logging service
-        Log::extend('bpa', function (Application $app, array $config) {
-            return $app['bpa.logging'];
-        });
+        // Log::extend('bpa', function (Application $app, array $config) {
+        //     return $app['bpa.logging'];
+        // });
         
         // Set as default channel
-        config(['logging.default' => 'bpa']);
+        // config(['logging.default' => 'bpa']);
     }
 }
