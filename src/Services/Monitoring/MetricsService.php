@@ -80,21 +80,6 @@ class MetricsService
         );
     }
 
-    private function initializeCacheMetrics(string $namespace)
-    {
-        $this->counters['cache_hits'] = $this->registry->getOrRegisterCounter(
-            $namespace,
-            'cache_hits_total',
-            'Cache hits'
-        );
-
-        $this->counters['cache_misses'] = $this->registry->getOrRegisterCounter(
-            $namespace,
-            'cache_misses_total',
-            'Cache misses'
-        );
-    }
-
     private function initializeQueueMetrics(string $namespace)
     {
         $this->gauges['queue_size'] = $this->registry->getOrRegisterGauge(
@@ -153,6 +138,36 @@ class MetricsService
         });
     }
 
+    // Alternative approach using event subscription
+    private function initializeCacheMetrics(string $namespace)
+    {
+        $this->counters['cache_hits'] = $this->registry->getOrRegisterCounter(
+            $namespace,
+            'cache_hits_total',
+            'Cache hits'
+        );
+
+        $this->counters['cache_misses'] = $this->registry->getOrRegisterCounter(
+            $namespace,
+            'cache_misses_total',
+            'Cache misses'
+        );
+    }
+
+    public function recordCacheHit()
+    {
+        if (isset($this->counters['cache_hits'])) {
+            $this->counters['cache_hits']->inc();
+        }
+    }
+
+    public function recordCacheMiss()
+    {
+        if (isset($this->counters['cache_misses'])) {
+            $this->counters['cache_misses']->inc();
+        }
+    }
+
     public function setupCacheMetrics()
     {
         if (!class_exists('Illuminate\Support\Facades\Cache')) {
@@ -160,16 +175,16 @@ class MetricsService
         }
 
         try {
-            Cache::missed(function () {
+            // Update the event listeners to use event objects
+            Cache::missing(function (CacheMissed $event) {
                 $this->recordCacheMiss();
             });
 
-            Cache::hit(function () {
+            Cache::hit(function (CacheHit $event) {
                 $this->recordCacheHit();
             });
         } catch (\Exception $e) {
             report($e);
-            // Log error or handle gracefully
         }
     }
 
@@ -183,16 +198,6 @@ class MetricsService
     {
         $this->counters['db_queries_total']->inc();
         $this->histograms['db_query_duration']->observe($duration);
-    }
-
-    public function recordCacheHit()
-    {
-        $this->counters['cache_hits']->inc();
-    }
-
-    public function recordCacheMiss()
-    {
-        $this->counters['cache_misses']->inc();
     }
 
     public function updateQueueSize($queue, $size)

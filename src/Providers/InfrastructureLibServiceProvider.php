@@ -17,6 +17,15 @@ use Illuminate\Contracts\Http\Kernel;
 
 class InfrastructureLibServiceProvider extends ServiceProvider
 {
+    protected $listen = [
+        CacheHit::class => [
+            CacheHitListener::class,
+        ],
+        CacheMissed::class => [
+            CacheMissListener::class,
+        ],
+    ];
+
     public function register()
     {
         $this->publishes([
@@ -68,6 +77,12 @@ class InfrastructureLibServiceProvider extends ServiceProvider
 
     public function boot()
     {
+        foreach ($this->listen as $event => $listeners) {
+            foreach ($listeners as $listener) {
+                $this->app['events']->listen($event, $listener);
+            }
+        }
+        
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__.'/../../config/infrastructure.php' => config_path('infrastructure.php'),
