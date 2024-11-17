@@ -19,7 +19,7 @@ class InfrastructureLibServiceProvider extends ServiceProvider
     public function register()
     {
         $this->publishes([
-            __DIR__ . '/../config/core_dependencies.php' => config_path('core_dependencies.php'),
+            __DIR__ . '/../../config/core_dependencies.php' => config_path('core_dependencies.php'),
         ]);
 
         $this->app->singleton(MetricsService::class, function ($app) {
@@ -27,7 +27,7 @@ class InfrastructureLibServiceProvider extends ServiceProvider
         });
 
         $this->mergeConfigFrom(
-            __DIR__.'/../config/infrastructure.php', 'infrastructure'
+            __DIR__.'/../../config/infrastructure.php', 'infrastructure'
         );
 
         // Register EventManager
@@ -66,13 +66,13 @@ class InfrastructureLibServiceProvider extends ServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__.'/../config/infrastructure.php' => config_path('infrastructure.php'),
+                __DIR__.'/../../config/infrastructure.php' => config_path('infrastructure.php'),
             ], 'infrastructure-config');
         }
 
 
         $this->publishes([
-            __DIR__.'/../config/infrastructure.php' => config_path('infrastructure.php'),
+            __DIR__.'/../../config/infrastructure.php' => config_path('infrastructure.php'),
         ], 'config');
 
         $this->bootEventListeners();
@@ -83,18 +83,6 @@ class InfrastructureLibServiceProvider extends ServiceProvider
     private function bootEventListeners()
     {
         // Integrate with Laravel's event system
-
-        $this->app['broadcast.listener']->listen();
-        
-        // Monitor performance metrics
-        Event::listen('illuminate.query', function ($query, $bindings, $time) {
-            $this->app['bpa.monitoring']->histogram(
-                'query_duration_seconds',
-                'Database query duration in seconds',
-                ['query' => $query],
-                [0.1, 0.25, 0.5, 1, 2.5, 5, 10]
-            );
-        });
     }
 
     private function bootMonitoring()
