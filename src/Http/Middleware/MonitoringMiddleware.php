@@ -29,14 +29,10 @@ class MonitoringMiddleware
         $duration = microtime(true) - $start;
 
         if ($request->route()) {
-            $this->metricsService->histogram(
-                'http_request_duration_seconds',
-                'HTTP request duration in seconds',
-                [
-                    'method' => $request->method(),
-                    'route' => $request->route()->getName() ?? 'unnamed',
-                    'status' => $response->getStatusCode()
-                ],
+            $this->metricsService->recordHttpRequest(
+                $request->method(),
+                $request->route()->getName() ?? 'unnamed',
+                $response->getStatusCode(),
                 $duration
             );
         }

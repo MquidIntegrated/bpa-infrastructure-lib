@@ -204,4 +204,32 @@ class MetricsService
     {
         $this->gauges['memory_usage']->set(memory_get_usage(true));
     }
+
+    /**
+     * Generic method to record a histogram metric
+     *
+     * @param string $name
+     * @param string $help
+     * @param array $labels
+     * @param float $value
+     * @return void
+     */
+    public function histogram(string $name, string $help, array $labels = [], float $value)
+    {
+        $namespace = $this->config['namespace'] ?? 'app';
+        $buckets = $this->config['buckets'] ?? [0.1, 0.3, 0.5, 0.7, 1, 2, 3, 5, 7, 10];
+
+        if (!isset($this->histograms[$name])) {
+            $this->histograms[$name] = $this->registry->getOrRegisterHistogram(
+                $namespace,
+                $name,
+                $help,
+                array_keys($labels),
+                $buckets
+            );
+        }
+
+        $this->histograms[$name]->observe($value, $labels);
+    }
+
 }
