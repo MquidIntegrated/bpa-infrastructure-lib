@@ -13,6 +13,7 @@ use BPA\InfrastructureLib\Services\ErrorHandling\ErrorHandlingService;
 use Illuminate\Foundation\Application;
 use BPA\InfrastructureLib\Events\EventManager;
 use BPA\InfrastructureLib\Commands\ListenEventsCommand;
+use Illuminate\Contracts\Http\Kernel;
 
 class InfrastructureLibServiceProvider extends ServiceProvider
 {
@@ -43,6 +44,9 @@ class InfrastructureLibServiceProvider extends ServiceProvider
         $this->setupMetricsCollectors();
 
         $this->mergeConfigFrom(__DIR__ . '/../../config/core_dependencies.php', 'core_dependencies');
+
+        // Register the monitoring middleware
+        $this->app->singleton(\BPA\InfrastructureLib\Http\Middleware\MonitoringMiddleware::class);
     }
 
     private function setupMetricsCollectors()
@@ -70,7 +74,6 @@ class InfrastructureLibServiceProvider extends ServiceProvider
             ], 'infrastructure-config');
         }
 
-
         $this->publishes([
             __DIR__.'/../../config/infrastructure.php' => config_path('infrastructure.php'),
         ], 'config');
@@ -89,27 +92,14 @@ class InfrastructureLibServiceProvider extends ServiceProvider
     {
         // Register basic application metrics
         $this->app->terminating(function () {
-            $this->app['bpa.monitoring']->pushMetrics();
+            if ($this->app->bound('bpa.monitoring')) {
+                $this->app['bpa.monitoring']->pushMetrics();
+            }
         });
         
-        // Monitor request metrics
-        $this->app->middleware->push(function ($request, $next) {
-            $start = microtime(true);
-            $response = $next($request);
-            $duration = microtime(true) - $start;
-            
-            $this->app['bpa.monitoring']->histogram(
-                'http_request_duration_seconds',
-                'HTTP request duration in seconds',
-                [
-                    'method' => $request->method(),
-                    'route' => $request->route()->getName() ?? 'unnamed',
-                    'status' => $response->status()
-                ]
-            );
-            
-            return $response;
-        });
+        // Add the monitoring middleware to the kernel
+        $kernel = $this->app[Kernel::class];
+        $kernel->pushMiddleware(\BPA\InfrastructureLib\Http\Middleware\MonitoringMiddleware::class);
     }
 
     private function integrateLogging()
