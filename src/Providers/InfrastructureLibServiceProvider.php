@@ -107,7 +107,7 @@ class InfrastructureLibServiceProvider extends ServiceProvider
                 
                 // Update final metrics before the application terminates
                 $service->updateHealthStatus('application', true);
-                $service->updateMemoryUsage();
+                // $service->updateMemoryUsage();
             }
         });
     }
