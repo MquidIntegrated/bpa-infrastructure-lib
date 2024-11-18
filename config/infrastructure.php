@@ -68,4 +68,26 @@ return [
         // 'user.updated' => \App\Events\Handlers\UserUpdatedHandler::class,
         // 'user.deleted' => \App\Events\Handlers\UserDeletedHandler::class,
     ],
+
+    'monitoring' => [
+        'enabled' => env('MONITORING_ENABLED', true),
+        'metrics_token' => env('METRICS_TOKEN'),
+        'collect_db_metrics' => env('COLLECT_DB_METRICS', true),
+        'collect_cache_metrics' => env('COLLECT_CACHE_METRICS', true),
+        'collect_queue_metrics' => env('COLLECT_QUEUE_METRICS', true),
+    ],
+    
+    'health_check' => [
+        'enabled' => env('HEALTH_CHECK_ENABLED', true),
+        'included_checks' => [
+            'redis',
+            'application',
+            // Add other checks as needed
+        ],
+    ],
+    
+    'tracing' => [
+        'enabled' => env('TRACING_ENABLED', true),
+        'sample_rate' => env('TRACING_SAMPLE_RATE', 1.0),
+    ],
 ];

@@ -25,11 +25,18 @@ class MetricsService
 
     private function setupStorage()
     {
-        $storageConfig = $this->config['storage'] ?? [];
+        $redisConfig = $this->config['storage']['redis'] ?? [];
+        
+        // Set Redis options for Prometheus
         Redis::setDefaultOptions([
-            'host' => $storageConfig['host'] ?? env('REDIS_HOST', '127.0.0.1'),
-            'port' => $storageConfig['port'] ?? env('REDIS_PORT', 6379),
-            'password' => $storageConfig['password'] ?? env('REDIS_PASSWORD', null),
+            'host' => $redisConfig['host'],
+            'port' => $redisConfig['port'],
+            'password' => $redisConfig['password'],
+            'database' => $redisConfig['database'],
+            'timeout' => $redisConfig['timeout'],
+            'read_timeout' => $redisConfig['read_timeout'],
+            'persistent_connections' => $redisConfig['persistent_connections'],
+            'prefix' => $redisConfig['prefix'],
         ]);
     }
 
@@ -127,12 +134,15 @@ class MetricsService
             $start = microtime(true);
     
             app()->terminating(function () use ($start, $route) {
-                $request = request(); // Get the request object
+                $request = request();
                 $duration = microtime(true) - $start;
+                
+                // Get the URI pattern from the route instead of the event
+                $routeUri = $route->uri();
                 
                 $this->recordHttpRequest(
                     $request->method(),
-                    $route->uri(),
+                    $routeUri,
                     http_response_code(),
                     $duration
                 );
